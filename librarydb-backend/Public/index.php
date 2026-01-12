@@ -29,6 +29,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 }
 
 $db = new Database($config['db']['dsn'], $config['db']['user'], $config['db']['pass']);
+require_once $SRC . '/OpenLibraryClient.php';
 $ol = new OpenLibraryClient($config['openlibrary']['base']);
 
 $booksRepo = new BookRepository($db);
@@ -41,12 +42,11 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 try {
-    if ($method === 'GET' && $path === '/api/stock/list') { $stockController->list(); exit; }
-    if ($method === 'POST' && $path === '/api/stock/set') { $stockController->set(); exit; }
-
     if ($method === 'GET' && $path === '/api/openlibrary/search') { $bookController->openLibrarySearch(); exit; }
     if ($method === 'GET' && $path === '/api/openlibrary/edition') { $bookController->openLibraryEdition(); exit; }
-    if ($method === 'POST' && $path === '/api/books/import-edition') { $bookController->importEdition(); exit; }
+
+    if ($method === 'GET' && $path === '/api/stock/list') { $stockController->list(); exit; }
+    if ($method === 'POST' && $path === '/api/stock/set') { $stockController->set(); exit; }
 
     header('Content-Type: application/json; charset=utf-8');
     http_response_code(404);

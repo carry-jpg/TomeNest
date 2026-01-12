@@ -3,6 +3,43 @@ declare(strict_types=1);
 
 final class OpenLibraryClient
 {
+	public function workEditions(string $workId, int $limit = 5): array
+{
+    // $workId like "OL12345W"
+    $url = $this->baseUrl . '/works/' . rawurlencode($workId) . '/editions.json?limit=' . $limit;
+    return $this->getJson($url);
+}
+
+public function searchWithEditionOlids(string $q, int $limit = 20): array
+{
+    $search = $this->search($q, $limit);
+
+    if (!isset($search['docs']) || !is_array($search['docs'])) return $search;
+
+    foreach ($search['docs'] as &$doc) {
+        $doc['edition_olid'] = null;
+
+        $key = isset($doc['key']) ? (string)$doc['key'] : ''; // "/works/OL...W"
+        if (!preg_match('#^/works/(OL[0-9A-Z]+W)$#', $key, $m)) continue;
+
+        $workId = $m[1];
+        try {
+            $eds = $this->workEditions($workId, 1);
+            $entries = $eds['entries'] ?? [];
+            if (is_array($entries) && isset($entries[0]['key'])) {
+                // "/books/OL...M"
+                if (preg_match('#^/books/(OL[0-9A-Z]+M)$#', (string)$entries[0]['key'], $mm)) {
+                    $doc['edition_olid'] = $mm[1];
+                }
+            }
+        } catch (Throwable $e) {
+            // ignore per-doc failure
+        }
+    }
+
+    return $search;
+}
+
     private string $baseUrl;
 
     public function __construct(string $baseUrl)

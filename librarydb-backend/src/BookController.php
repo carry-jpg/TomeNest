@@ -11,7 +11,7 @@ final class BookController extends Controller
             $q = isset($_GET['q']) ? (string)$_GET['q'] : '';
             $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
             if (trim($q) === '') throw new InvalidArgumentException("Missing q");
-            $this->json($this->ol->search($q, $limit));
+            $this->json($this->ol->searchWithEditionOlids($q, $limit));
         } catch (Throwable $e) {
             $this->json(['error' => $e->getMessage()], 400);
         }

@@ -9,6 +9,7 @@
 //     'base' => 'https://openlibrary.org'
 //   ]
 // ];
+//
 return [
   'db' => [
     'dsn'  => 'mysql:host=localhost;dbname=librarydb;charset=utf8mb4',

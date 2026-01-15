@@ -1,15 +1,19 @@
 <?php
 declare(strict_types=1);
 
-// ---------- Debug (DEV only) ----------
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-// ---------- Boot ----------
 session_start();
 
+define('SRC', __DIR__ . '/../src');
+
+
 // Paths
-$SRC = __DIR__ . '/../src';
+$config = require SRC . '/Config/config.php';
+require_once SRC . '/Database.php';
+require_once SRC . '/Controller.php';
+
 
 // Config file returns an array, so ASSIGN it
 $config = require $SRC . '/Config/config.php';
@@ -25,6 +29,7 @@ require_once $SRC . '/BookRepository.php';
 require_once $SRC . '/StockRepository.php';
 require_once $SRC . '/BookController.php';
 require_once $SRC . '/StockController.php';
+require_once SRC . "/WishlistRepository.php";
 
 // Auth classes
 require_once $SRC . '/UserRepository.php';
@@ -100,6 +105,7 @@ try {
     $bookRepo = makeRepo(BookRepository::class, $db, $pdo);
     $stockRepo = makeRepo(StockRepository::class, $db, $pdo);
     $userRepo = makeRepo(UserRepository::class, $db, $pdo);
+    $wishlistRepo = makeRepo(WishlistRepository::class, $db, $pdo);
 
     // Others
     $bookMapper = new BookMapper();
@@ -107,6 +113,35 @@ try {
     $stockController = new StockController($stockRepo, $bookRepo, $ol);
 
     $authController = new AuthController($userRepo);
+
+    function jsonOut($data, int $code = 200): void
+    {
+        header("Content-Type: application/json; charset=utf-8");
+        http_response_code($code);
+        echo json_encode($data, JSON_UNESCAPED_SLASHES);
+    }
+
+    function jsonBody(): array
+    {
+        $raw = file_get_contents("php://input");
+        $data = json_decode($raw ?: "{}", true);
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Assumes AuthController stores the logged-in user in the session as an array.
+     * This matches your session-based setup (session_start() is already in index.php).
+     */
+    function requireUser(): array
+    {
+        $u = $_SESSION["user"] ?? null;
+        if (!is_array($u) || !isset($u["userid"])) {
+            jsonOut(["error" => "Not authenticated"], 401);
+            exit;
+        }
+        return $u;
+    }
+
 
     // ---------- Auth ----------
     if ($method === 'GET' && $path === '/api/auth/me') {
@@ -147,6 +182,71 @@ try {
     }
 
     // ---------- Stock ----------
+    // ---------- Wishlist ----------
+    if ($method === "GET" && $path === "/api/wishlist/me") {
+        $u = requireUser();
+        $rows = $wishlistRepo->listByUser((int) $u["userid"]);
+        jsonOut($rows);
+        exit;
+    }
+
+    if ($method === "GET" && $path === "/api/wishlist/ids") {
+        $u = requireUser();
+        $ids = $wishlistRepo->idsByUser((int) $u["userid"]);
+        jsonOut($ids);
+        exit;
+    }
+
+    if ($method === "POST" && $path === "/api/wishlist/remove") {
+        $u = requireUser();
+        $body = jsonBody();
+        $olid = strtoupper(trim((string) ($body["olid"] ?? "")));
+        if ($olid === "") {
+            jsonOut(["error" => "Missing olid"], 400);
+            exit;
+        }
+        $wishlistRepo->remove((int) $u["userid"], $olid);
+        jsonOut(["ok" => true]);
+        exit;
+    }
+
+    if ($method === "POST" && $path === "/api/wishlist/toggle") {
+        $u = requireUser();
+        $body = jsonBody();
+        $olid = strtoupper(trim((string) ($body["olid"] ?? "")));
+        if ($olid === "") {
+            jsonOut(["error" => "Missing olid"], 400);
+            exit;
+        }
+
+        if ($wishlistRepo->exists((int) $u["userid"], $olid)) {
+            $wishlistRepo->remove((int) $u["userid"], $olid);
+            jsonOut(["wished" => false]);
+            exit;
+        }
+
+        $wishlistRepo->add((int) $u["userid"], [
+            "openlibraryid" => $olid,
+            "title" => $body["title"] ?? null,
+            "author" => $body["author"] ?? null,
+            "coverurl" => $body["coverurl"] ?? null,
+            "releaseyear" => $body["releaseyear"] ?? null,
+        ]);
+
+        jsonOut(["wished" => true]);
+        exit;
+    }
+
+    if ($method === "GET" && $path === "/api/wishlist/admin/summary") {
+        $u = requireUser();
+        if (($u["role"] ?? "") !== "admin") {
+            jsonOut(["error" => "Forbidden"], 403);
+            exit;
+        }
+        jsonOut($wishlistRepo->adminSummary());
+        exit;
+    }
+
     if ($method === 'GET' && $path === '/api/stock/list') {
         $stockController->list();
         exit;

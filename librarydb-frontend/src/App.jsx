@@ -25,6 +25,9 @@ import SupportPage from "./pages/Support";
 import BookDetailsModal from "./components/BookDetailsModal";
 import FiltersPanel from "./components/FiltersPanel";
 import { apiGet, apiPost } from "./api/http";
+import WishlistButton from "./components/WishlistButton";
+import WishlistPage from "./pages/Wishlist";
+
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -105,7 +108,7 @@ function NavItem({ icon, label, active = false, onClick }) {
   );
 }
 
-function BookCard({ book }) {
+function BookCard({ book, role }) {
   const coverSrc =
     book.coverurl ||
     book.cover_url ||
@@ -122,12 +125,19 @@ function BookCard({ book }) {
           className="w-full h-full object-cover"
         />
 
+        {/* Wishlist (users only) */}
+        {role === "user" ? (
+          <WishlistButton item={book} className="absolute top-2 left-2" />
+        ) : null}
+
+        {/* Wear badge */}
         {Number.isFinite(wear) && wear > 0 ? (
           <div className="absolute top-2 right-2 px-2 py-1 rounded-md text-xs font-black bg-black/70 text-white border border-white/10">
             {wear}/5
           </div>
         ) : null}
 
+        {/* Existing bottom-left bookmark decoration */}
         <div className="absolute bottom-0 left-2">
           <div className="relative">
             <Bookmark
@@ -164,7 +174,6 @@ function BookCard({ book }) {
     </div>
   );
 }
-
 
 const GRID_CLASS_BY_COLS = {
   3: "xl:grid-cols-3",
@@ -276,7 +285,7 @@ function AuthScreen({ mode, setMode, onLogin, onRegister, error, busy }) {
 }
 
 export default function App() {
-  const [activePage, setActivePage] = useState("library"); // library | stock | settings | support
+  const [activePage, setActivePage] = useState("library"); // library | stock | settings | support | wishlist/wishlists
 
   const [theme, setTheme] = useState(() => loadLS("ui.theme", "teal"));
   const [darkMode, setDarkMode] = useState(() => loadLS("ui.darkMode", false));
@@ -508,11 +517,22 @@ export default function App() {
               ) : null}
 
               {/* This one used to pass FolderPlus component directly; NavItem now handles it */}
-              <NavItem
-                icon={FolderPlus}
-                label="Add Collection"
-                onClick={() => alert("Placeholder Add Collection")}
-              />
+              {user?.role === "admin" ? (
+                <NavItem
+                  icon={FolderPlus}
+                  label="Wishlists"
+                  active={activePage === "wishlists"}
+                  onClick={() => setActivePage("wishlists")}
+                />
+              ) : (
+                <NavItem
+                  icon={FolderPlus}
+                  label="My Wishlist"
+                  active={activePage === "wishlist"}
+                  onClick={() => setActivePage("wishlist")}
+                />
+              )}
+
             </div>
 
             <div className="space-y-1">
@@ -606,6 +626,15 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+
+                {activePage === "wishlist" && <WishlistPage />}
+
+                {activePage === "wishlists" && (
+                  <div className="text-sm text-[color:var(--text-secondary)]">
+                    Admin Wishlists page coming next.
+                  </div>
+                )}
+
 
                 {loadError && (
                   <div className="mb-6 rounded-lg border border-red-300 bg-red-50 text-red-800 px-4 py-3">
@@ -701,16 +730,20 @@ export default function App() {
                   ].join(" ")}
                 >
                   {filtered.map((b) => (
-                    <button
-                      key={b.stockid ?? `${b.openlibraryid}-${b.condition}`}
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setSelectedBook(b)}
-                      className="text-left focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setSelectedBook(b);
+                      }}
+                      className="text-left focus:outline-none cursor-pointer"
                     >
                       <div className="rounded-md hover:bg-[color:var(--active-bg)] p-2 -m-2 transition-colors">
-                        <BookCard book={b} />
+                        <BookCard book={b} role={user?.role} />
                       </div>
-                    </button>
+                    </div>
+
                   ))}
                 </div>
 
@@ -731,7 +764,7 @@ export default function App() {
             )}
           </div>
         </main>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

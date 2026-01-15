@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 final class Database
 {
-    private PDO $pdo;
+    public readonly PDO $pdo;
 
     public function __construct(array $cfg)
     {

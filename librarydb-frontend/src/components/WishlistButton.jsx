@@ -49,7 +49,22 @@ export default function WishlistButton({ item, className = "" }) {
           anim ? "is-anim" : "",
           className,
         ].join(" ")}
-        onClick={onClick}
+        onClick={async function onClick(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (disabled) return;
+
+          try {
+            const next = await toggleWishlist(item);
+            setFilled(next);
+            setAnim(true);
+            clearTimeout(tRef.current);
+            tRef.current = setTimeout(() => setAnim(false), 260);
+          } catch {
+            // optional: show toast
+          }
+        }
+        }
         disabled={disabled}
         aria-label={title}
         title={title}

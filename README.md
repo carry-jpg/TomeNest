@@ -29,3 +29,6 @@ The backend entry point is `Public/index.php` and all routes are served under `/
 2. Start **Apache** in XAMPP.
 3. Your backend base URL will typically be:
    - `http://localhost/TomeNest/Public` (adjust to your folder name)
+
+ERD for the database used in project:
+<img width="1409" height="580" alt="image" src="https://github.com/user-attachments/assets/3e4bc972-4099-4bea-9d05-5e22d233120c" />

@@ -29,12 +29,12 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `book` (
   `openlibraryid` varchar(20) NOT NULL,
-  `isbn` varchar(13) NOT NULL,
-  `title` varchar(512) NOT NULL,
-  `author` varchar(255) NOT NULL,
-  `releaseyear` year(4) NOT NULL,
+  `isbn` varchar(13) NULL,
+  `title` varchar(512) NULL,
+  `author` varchar(255) NULL,
+  `releaseyear` year(4) NULL,
   `publisher` varchar(255) DEFAULT NULL,
-  `language` char(2) NOT NULL,
+  `language` char(2) NULL,
   `pages` int(10) UNSIGNED DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
